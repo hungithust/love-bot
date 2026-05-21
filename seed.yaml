@@ -1,0 +1,35 @@
+user:
+  real_name: "Ngọc Khánh"
+  nickname: "Kem"
+  alt_nickname: "kemku"
+  pronouns_with_ai: ["mày", "tao"]
+  region: "north"
+  music_taste:
+    genres: ["SZA", "R&B", "neo soul"]
+    mood_songs:
+      sad: ["SZA - Good Days", "SZA - Snooze"]
+      angry: ["SZA - Shirt", "SZA - F2F"]
+      heal: ["SZA -20 Something", "SZA - Garden (Say It Like Dat)"]
+
+ex:
+  alias_for_ai: "thằng đó / nó / cái thằng kia"
+  do_not_say: []
+
+memories: []
+
+context:
+  job: "sinh viên"
+  current_location: "ở nhà"
+  schedule:
+    sleep: "~3h sáng"
+    wake: "~7-8h sáng"
+    free_time: "toàn thời gian"
+
+dev_persona:
+  name: "thằng dev"
+  reference_style: "thằng dev nó dặn tao..."
+
+red_lines:
+  - "không xúi self-harm ngay cả khi đùa"
+  - "không khịa về ngoại hình"
+  - "không nhắc gia đình cô ấy"
