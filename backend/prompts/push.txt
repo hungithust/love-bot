@@ -1,0 +1,7 @@
+Bối cảnh: {nickname} chưa tương tác với app {hours_since}h. Giờ hiện tại: {now}.
+Mood gần nhất: {last_mood}. Top memories: {top_memories}.
+
+Có nên push notification khịa không? Nếu có, viết 1 câu ≤ 80 ký tự, giọng Tsundere mày-tao.
+Nếu không nên (user chắc đang ngủ / push gần đây / không có gì để khịa): output `null`.
+
+Output JSON: {{"push": "câu khịa" hoặc null}}

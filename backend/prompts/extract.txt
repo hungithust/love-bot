@@ -1,0 +1,15 @@
+User vừa nói: "{user_msg}"
+AI rep: "{ai_reply}"
+
+Có thông tin nào đáng nhớ dài hạn không? Output JSON array:
+[{{"content": "...", "tag": "ex|self|preference|event|contradiction"}}]
+
+Tiêu chí "đáng nhớ":
+- Quyết định user tự nói ra ("tao sẽ block nó", "tao thề không nhắn nữa")
+- Mâu thuẫn so với ký ức cũ
+- Pattern lặp (lại SZA lúc buồn, lại 3h sáng)
+- Thông tin mới về ex hoặc cuộc sống
+
+BỎ QUA: small talk, câu chửi đơn thuần, mood thoáng qua.
+Nếu không có gì: trả về [].
+CHỈ output JSON, không text khác.
