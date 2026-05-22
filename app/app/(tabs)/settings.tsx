@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable, Alert, ScrollView, Switch } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as SecureStore from "expo-secure-store";
 import { storage } from "@/lib/storage";
 import { useTheme, ThemeMode } from "@/lib/theme";
 import { isLocationEnabled, enableLocation, disableLocation } from "@/lib/location";
 
 const MODES: ThemeMode[] = ["chaos", "dark", "calm", "red_alert"];
+
+type PersonaMode = "tsundere" | "silent_beauty";
+const PERSONA_MODES: { value: PersonaMode; label: string; desc: string }[] = [
+  { value: "tsundere", label: "Tsundere", desc: "Hay cằn nhằn, thực ra quan tâm lắm" },
+  { value: "silent_beauty", label: "Silent Beauty", desc: "Lạnh lùng, ít lời, sâu sắc" },
+];
 
 export default function Settings() {
   const { mode, set, palette } = useTheme();
@@ -13,12 +20,21 @@ export default function Settings() {
   const [base, setBase] = useState("");
   const [key, setKey] = useState("");
   const [locationOn, setLocationOn] = useState(false);
+  const [persona, setPersona] = useState<PersonaMode>("tsundere");
 
   useEffect(() => {
     storage.getBase().then(setBase);
     storage.getKey().then(setKey);
     isLocationEnabled().then(setLocationOn);
+    SecureStore.getItemAsync("PERSONA_MODE").then(v => {
+      if (v === "tsundere" || v === "silent_beauty") setPersona(v);
+    });
   }, []);
+
+  async function changePersona(value: PersonaMode) {
+    await SecureStore.setItemAsync("PERSONA_MODE", value);
+    setPersona(value);
+  }
 
   async function save() {
     await storage.setBase(base.trim());
@@ -71,6 +87,19 @@ export default function Settings() {
           trackColor={{ false: "#333", true: palette.accent }}
           thumbColor={locationOn ? "#fff" : "#888"}
         />
+      </View>
+
+      <Text style={{ color: palette.fg, marginTop: 8 }}>Nhân cách AI</Text>
+      <View style={{ gap: 8 }}>
+        {PERSONA_MODES.map(p => (
+          <Pressable key={p.value} onPress={() => changePersona(p.value)}
+            style={{ padding: 12, borderRadius: 8,
+              backgroundColor: p.value === persona ? palette.accent : "#222",
+              borderWidth: p.value === persona ? 0 : 1, borderColor: "#444" }}>
+            <Text style={{ color: palette.fg, fontWeight: "600" }}>{p.label}</Text>
+            <Text style={{ color: p.value === persona ? palette.fg : "#888", fontSize: 12, marginTop: 2 }}>{p.desc}</Text>
+          </Pressable>
+        ))}
       </View>
 
       <Text style={{ color: palette.fg, marginTop: 8 }}>Theme</Text>
