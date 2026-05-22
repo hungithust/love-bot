@@ -1,86 +1,128 @@
-import { useState } from "react";
-import { View, Text, TextInput, Pressable, Animated } from "react-native";
+import { useState, useCallback } from "react";
+import { View, Text, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useRef } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Weapon } from "@/components/Weapon";
-import { BurnAnim } from "@/components/BurnAnim";
+import { BossArena, BOSSES, Boss } from "@/components/BossArena";
 import { postJSON } from "@/lib/api";
+import { useUserStatus, PRESETS } from "@/lib/userStatus";
 import { useTheme } from "@/lib/theme";
+
+function bossFromStatus(statusLabel: string | undefined): Boss | null {
+  if (!statusLabel) return null;
+  const preset = PRESETS.find(p => p.label === statusLabel);
+  if (!preset?.bossId) return null;
+  return BOSSES.find(b => b.id === preset.bossId) ?? null;
+}
 
 const WEAPONS = ["hammer", "bat", "grenade", "fire"];
 
 export default function Rage() {
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
-  const [text, setText] = useState("");
+  const router = useRouter();
+  const { status } = useUserStatus();
+
+  const autoBoss = bossFromStatus(status?.label);
+  const [boss, setBoss] = useState<Boss | null>(autoBoss);
   const [weapon, setWeapon] = useState("hammer");
-  const [burning, setBurning] = useState<string | null>(null);
   const [quip, setQuip] = useState<string | null>(null);
-  const smashScale = useRef(new Animated.Value(1)).current;
+  const [dead, setDead] = useState(false);
+  const [arenaKey, setArenaKey] = useState(0);
 
-  useFocusEffect(useCallback(() => {}, []));
+  useFocusEffect(useCallback(() => {
+    const b = bossFromStatus(status?.label);
+    if (b && !dead) {
+      setBoss(b);
+      setArenaKey(k => k + 1);
+      setDead(false);
+      setQuip(null);
+    }
+  }, [status?.label]));
 
-  async function smash() {
-    if (!text.trim()) return;
-    const target = text;
-    setText("");
+  async function handleDeath(_: string) {
+    setDead(true);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      const r = await postJSON("/rage", { boss_id: boss?.id ?? "anger", weapon });
+      setQuip(r.quip);
+    } catch {
+      setQuip("Xong rồi. Khỏe chưa?");
+    }
+  }
 
-    Animated.sequence([
-      Animated.timing(smashScale, { toValue: 0.93, duration: 80, useNativeDriver: true }),
-      Animated.spring(smashScale, { toValue: 1, friction: 3, useNativeDriver: true }),
-    ]).start();
+  async function handleHit(_: number) {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }
 
-    const r = await postJSON("/rage", { target_text: target, weapon });
-    if (r.haptic_pattern === "heavy") await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    else await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    setBurning(target);
-    setQuip(r.quip);
+  function resetBoss() {
+    setDead(false);
+    setQuip(null);
+    setArenaKey(k => k + 1);
+  }
+
+  if (!boss) {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.bg, padding: 16, paddingTop: insets.top + 16 }}>
+        <Text style={{ color: palette.fg, fontSize: 16, fontWeight: "700", marginBottom: 16 }}>Chọn kẻ thù</Text>
+        {BOSSES.map(b => (
+          <Pressable
+            key={b.id}
+            onPress={() => { setBoss(b); setArenaKey(k => k + 1); }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14,
+              backgroundColor: palette.surface, borderRadius: 10, marginBottom: 10,
+              borderWidth: 1, borderColor: palette.border }}
+          >
+            <Text style={{ fontSize: 28 }}>{b.emoji}</Text>
+            <Text style={{ color: palette.fg, fontSize: 14, fontWeight: "600" }}>{b.name}</Text>
+          </Pressable>
+        ))}
+      </View>
+    );
+  }
+
+  if (dead) {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.bg, alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <Text style={{ fontSize: 64, marginBottom: 12 }}>💀</Text>
+        <Text style={{ color: "#ff4444", fontSize: 20, fontWeight: "900", marginBottom: 4 }}>ĐÃ TIÊU DIỆT!</Text>
+        <Text style={{ color: "#888", fontSize: 13, marginBottom: 24 }}>{boss.name} đã bị dập tắt</Text>
+        {quip && (
+          <View style={{ backgroundColor: palette.surface, borderRadius: 12, padding: 14, marginBottom: 24, maxWidth: 280 }}>
+            <Text style={{ color: palette.accent, fontSize: 10, marginBottom: 4 }}>Bạn của Kem nói:</Text>
+            <Text style={{ color: palette.fg, fontSize: 13, fontStyle: "italic" }}>"{quip}"</Text>
+          </View>
+        )}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <Pressable onPress={resetBoss}
+            style={{ backgroundColor: palette.surface, borderRadius: 8, padding: 12, paddingHorizontal: 20 }}>
+            <Text style={{ color: palette.fg }}>Đánh lại</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push("/")}
+            style={{ backgroundColor: palette.accent, borderRadius: 8, padding: 12, paddingHorizontal: 20 }}>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Nói chuyện →</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg, padding: 16, paddingTop: insets.top + 16 }}>
-      <Text style={{ color: palette.fg, fontSize: 16, marginBottom: 8 }}>
-        Gõ thứ cần đập. Chọn vũ khí. Đập.
-      </Text>
-      <TextInput
-        value={text}
-        onChangeText={setText}
-        placeholder="ký ức tệ, tên gì đó..."
-        placeholderTextColor="#555"
-        style={{
-          color: palette.fg,
-          backgroundColor: palette.surface,
-          padding: 10,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: palette.border,
-        }}
-      />
-      <View style={{ flexDirection: "row", marginVertical: 12 }}>
+      <View style={{ flexDirection: "row", marginBottom: 12 }}>
         {WEAPONS.map(w => (
           <Weapon key={w} id={w} selected={w === weapon} onPress={() => setWeapon(w)} />
         ))}
       </View>
-      <Animated.View style={{ transform: [{ scale: smashScale }] }}>
-        <Pressable
-          onPress={smash}
-          style={{ backgroundColor: palette.accent, padding: 14, borderRadius: 8, overflow: "hidden" }}
-        >
-          <View style={{
-            position: "absolute", top: 0, right: 0, bottom: 0, width: "40%",
-            backgroundColor: palette.accent2,
-          }} />
-          <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>ĐẬP</Text>
-        </Pressable>
-      </Animated.View>
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        {burning && <BurnAnim text={burning} onDone={() => setBurning(null)} />}
-        {quip && !burning && (
-          <Text style={{ color: palette.accent, fontSize: 16, marginTop: 16 }}>{quip}</Text>
-        )}
-      </View>
+
+      <BossArena
+        key={arenaKey}
+        boss={boss}
+        weapon={weapon}
+        onDeath={handleDeath}
+        onHit={handleHit}
+      />
     </View>
   );
 }
