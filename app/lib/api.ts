@@ -12,6 +12,7 @@ export async function chatStream(
   onDone: () => void,
   onError: (e: any) => void,
   statusContext?: string,
+  onSearching?: () => void,
 ) {
   const base = await storage.getBase();
   const key = await storage.getKey();
@@ -24,6 +25,7 @@ export async function chatStream(
   es.addEventListener("text", (e: any) => onText(e.data));
   es.addEventListener("tool", (e: any) => onTools(JSON.parse(e.data)));
   es.addEventListener("mood", (e: any) => onMood(JSON.parse(e.data)));
+  es.addEventListener("searching", () => onSearching?.());
   es.addEventListener("done", () => { es.close(); onDone(); });
   es.addEventListener("error", (e: any) => { es.close(); onError(e); });
   return () => es.close();
