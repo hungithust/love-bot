@@ -75,6 +75,20 @@ export default function GPS() {
     }
 
     setLocation({ lat, lng, accuracy: accuracy ?? null, address, updatedAt: new Date() });
+
+    // Fetch suggestions
+    try {
+      const r = await fetch(`${base}/location/suggest`, {
+        headers: { "x-app-key": key },
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setSuggestions(data.suggestions ?? []);
+      }
+    } catch {
+      // suggestions are non-critical
+    }
+
     setState("ready");
   }
 
