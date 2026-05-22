@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Weapon } from "@/components/Weapon";
 import { BurnAnim } from "@/components/BurnAnim";
@@ -10,6 +11,7 @@ const WEAPONS = ["hammer", "bat", "grenade", "fire"];
 
 export default function Rage() {
   const { palette } = useTheme();
+  const insets = useSafeAreaInsets();
   const [text, setText] = useState("");
   const [weapon, setWeapon] = useState("hammer");
   const [burning, setBurning] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export default function Rage() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.bg, padding: 16 }}>
+    <View style={{ flex: 1, backgroundColor: palette.bg, padding: 16, paddingTop: insets.top + 16 }}>
       <Text style={{ color: palette.fg, fontSize: 16, marginBottom: 8 }}>
         Gõ thứ cần đập. Chọn vũ khí. Đập.
       </Text>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, Alert } from "react-native";
+import { View, Text, TextInput, Pressable, Alert, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { storage } from "@/lib/storage";
 import { useTheme, ThemeMode } from "@/lib/theme";
 
@@ -7,6 +8,7 @@ const MODES: ThemeMode[] = ["chaos", "dark", "calm", "red_alert"];
 
 export default function Settings() {
   const { mode, set, palette } = useTheme();
+  const insets = useSafeAreaInsets();
   const [base, setBase] = useState("");
   const [key, setKey] = useState("");
   useEffect(() => { storage.getBase().then(setBase); storage.getKey().then(setKey); }, []);
@@ -18,7 +20,8 @@ export default function Settings() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.bg, padding: 16, gap: 12 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: palette.bg }}
+      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, gap: 12 }}>
       <Text style={{ color: palette.fg, fontSize: 14 }}>Backend URL</Text>
       <TextInput value={base} onChangeText={setBase} autoCapitalize="none"
         style={{ color: palette.fg, backgroundColor: "#222", padding: 10, borderRadius: 8 }} />
@@ -37,6 +40,6 @@ export default function Settings() {
           </Pressable>
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }

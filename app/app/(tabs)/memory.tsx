@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, FlatList, RefreshControl } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getJSON, deleteJSON } from "@/lib/api";
 import { MemoryCard } from "@/components/MemoryCard";
 import { useTheme } from "@/lib/theme";
 
 export default function Memory() {
   const { palette } = useTheme();
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const load = useCallback(async () => {
@@ -15,7 +17,7 @@ export default function Memory() {
   }, []);
   useEffect(() => { load(); }, [load]);
   return (
-    <View style={{ flex: 1, backgroundColor: palette.bg, padding: 12 }}>
+    <View style={{ flex: 1, backgroundColor: palette.bg, padding: 12, paddingTop: insets.top + 12 }}>
       <Text style={{ color: palette.fg, fontSize: 18, marginBottom: 8 }}>
         App đang nhớ về mày ({items.length})
       </Text>

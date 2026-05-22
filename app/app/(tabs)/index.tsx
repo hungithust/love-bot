@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { View, TextInput, Pressable, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 import { chatStream } from "@/lib/api";
 import { ChatBubble } from "@/components/ChatBubble";
@@ -12,6 +13,7 @@ const FIRST_RUN_KEY = "FIRST_RUN_DONE";
 
 export default function Chat() {
   const { palette } = useTheme();
+  const insets = useSafeAreaInsets();
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: "assistant", content: "Lâu không thấy. Lại có chuyện gì rồi à?" }
   ]);
@@ -49,21 +51,31 @@ export default function Chat() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: palette.bg }}>
+      <View style={{ paddingTop: insets.top, backgroundColor: palette.bg,
+                     paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: "#222" }}>
+        <Text style={{ color: palette.fg, fontSize: 16, fontWeight: "600" }}>Kem</Text>
+        <Text style={{ color: "#555", fontSize: 12 }}>đang online</Text>
+      </View>
       <ScrollView ref={scroll}
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}
-        style={{ padding: 12 }}>
+        contentContainerStyle={{ padding: 12, paddingBottom: 8 }}>
         {msgs.map((m, i) => <ChatBubble key={i} role={m.role} content={m.content} />)}
       </ScrollView>
-      <View style={{ flexDirection: "row", padding: 8, gap: 8 }}>
+      <View style={{ flexDirection: "row", padding: 10, paddingBottom: insets.bottom || 10,
+                     gap: 8, backgroundColor: palette.bg, borderTopWidth: 1, borderTopColor: "#222" }}>
         <TextInput value={input} onChangeText={setInput} placeholder="nói đi..."
-          placeholderTextColor="#888"
-          style={{ flex: 1, color: palette.fg, backgroundColor: "#222", padding: 10, borderRadius: 8 }}
+          placeholderTextColor="#555"
+          multiline
+          style={{ flex: 1, color: palette.fg, backgroundColor: "#1a1a1a", padding: 10,
+                   borderRadius: 20, maxHeight: 100, borderWidth: 1, borderColor: "#333" }}
           onSubmitEditing={send} />
-        <Pressable onPress={send}
-          style={{ backgroundColor: palette.accent, padding: 10, borderRadius: 8 }}>
-          <Text style={{ color: palette.fg }}>gửi</Text>
+        <Pressable onPress={send} disabled={streaming}
+          style={{ backgroundColor: streaming ? "#333" : palette.accent,
+                   width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center",
+                   alignSelf: "flex-end" }}>
+          <Text style={{ color: palette.fg, fontSize: 18 }}>↑</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
