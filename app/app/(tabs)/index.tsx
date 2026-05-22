@@ -1,13 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { View, TextInput, Pressable, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View, TextInput, Pressable, Text, ScrollView,
+  KeyboardAvoidingView, Platform, TouchableOpacity,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
-import { chatStream } from "@/lib/api";
+import { chatStream, MoodData } from "@/lib/api";
 import { ChatBubble } from "@/components/ChatBubble";
+import { Avatar, Mood } from "@/components/Avatar";
+import { TypingIndicator } from "@/components/TypingIndicator";
 import { useTheme } from "@/lib/theme";
 import { executeTools } from "@/lib/toolExecutor";
 
-type Msg = { role: "user"|"assistant"; content: string };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  reactionEmoji?: string;
+};
 
 const FIRST_RUN_KEY = "FIRST_RUN_DONE";
 
@@ -19,6 +28,7 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [mood, setMood] = useState<Mood>("neutral");
   const scroll = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -31,51 +41,131 @@ export default function Chat() {
     })();
   }, []);
 
-  async function send() {
-    if (!input.trim() || streaming) return;
-    const user = input.trim();
+  async function send(text?: string) {
+    const user = (text ?? input).trim();
+    if (!user || streaming) return;
     setInput("");
     setMsgs(m => [...m, { role: "user", content: user }, { role: "assistant", content: "" }]);
     setStreaming(true);
+    setMood("thinking");
     await chatStream(
       user,
       (t) => setMsgs(m => {
         const copy = [...m];
-        copy[copy.length - 1] = { role: "assistant", content: copy[copy.length - 1].content + t };
+        copy[copy.length - 1] = { ...copy[copy.length - 1], content: copy[copy.length - 1].content + t };
         return copy;
       }),
       (tools) => executeTools(tools),
+      (moodData: MoodData) => {
+        setMood(moodData.mood as Mood);
+        setMsgs(m => {
+          const copy = [...m];
+          copy[copy.length - 1] = { ...copy[copy.length - 1], reactionEmoji: moodData.reaction_emoji };
+          return copy;
+        });
+      },
       () => setStreaming(false),
-      (e) => { console.error(e); setStreaming(false); },
+      (e) => { console.error(e); setStreaming(false); setMood("neutral"); },
     );
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: palette.bg }}>
-      <View style={{ paddingTop: insets.top, backgroundColor: palette.bg,
-                     paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: "#222" }}>
-        <Text style={{ color: palette.fg, fontSize: 16, fontWeight: "600" }}>Kem</Text>
-        <Text style={{ color: "#555", fontSize: 12 }}>đang online</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: palette.bg }}
+    >
+      {/* Header */}
+      <View style={{
+        paddingTop: insets.top,
+        backgroundColor: palette.bg,
+        paddingHorizontal: 16,
+        paddingBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: palette.border,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      }}>
+        <Avatar mood={mood} streaming={streaming} size={42} />
+        <View>
+          <Text style={{ color: palette.fg, fontSize: 15, fontWeight: "700" }}>Kem</Text>
+          {streaming
+            ? <TypingIndicator showLabel={true} />
+            : <Text style={{ color: palette.accent, fontSize: 11 }}>● online</Text>
+          }
+        </View>
       </View>
-      <ScrollView ref={scroll}
+
+      {/* Messages */}
+      <ScrollView
+        ref={scroll}
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}
-        contentContainerStyle={{ padding: 12, paddingBottom: 8 }}>
-        {msgs.map((m, i) => <ChatBubble key={i} role={m.role} content={m.content} />)}
+        contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
+      >
+        {msgs.map((m, i) => (
+          <ChatBubble
+            key={i}
+            role={m.role}
+            content={m.content}
+            reactionEmoji={m.reactionEmoji}
+            isLatest={i === msgs.length - 1}
+          />
+        ))}
       </ScrollView>
-      <View style={{ flexDirection: "row", padding: 10, paddingBottom: insets.bottom || 10,
-                     gap: 8, backgroundColor: palette.bg, borderTopWidth: 1, borderTopColor: "#222" }}>
-        <TextInput value={input} onChangeText={setInput} placeholder="nói đi..."
+
+      {/* Input bar */}
+      <View style={{
+        flexDirection: "row",
+        padding: 10,
+        paddingBottom: insets.bottom || 10,
+        gap: 8,
+        backgroundColor: palette.bg,
+        borderTopWidth: 1,
+        borderTopColor: palette.border,
+        alignItems: "flex-end",
+      }}>
+        {/* Quick emoji */}
+        <TouchableOpacity onPress={() => send("😤")} style={{ paddingBottom: 6 }}>
+          <Text style={{ fontSize: 22 }}>😤</Text>
+        </TouchableOpacity>
+
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          placeholder="nói đi..."
           placeholderTextColor="#555"
           multiline
-          style={{ flex: 1, color: palette.fg, backgroundColor: "#1a1a1a", padding: 10,
-                   borderRadius: 20, maxHeight: 100, borderWidth: 1, borderColor: "#333" }}
-          onSubmitEditing={send} />
-        <Pressable onPress={send} disabled={streaming}
-          style={{ backgroundColor: streaming ? "#333" : palette.accent,
-                   width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center",
-                   alignSelf: "flex-end" }}>
-          <Text style={{ color: palette.fg, fontSize: 18 }}>↑</Text>
+          style={{
+            flex: 1,
+            color: palette.fg,
+            backgroundColor: palette.surface,
+            padding: 10,
+            borderRadius: 20,
+            maxHeight: 100,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+          onSubmitEditing={() => send()}
+        />
+
+        {/* Send button */}
+        <Pressable
+          onPress={() => send()}
+          disabled={streaming}
+          style={{
+            width: 42, height: 42, borderRadius: 21,
+            alignItems: "center", justifyContent: "center",
+            backgroundColor: streaming ? "#333" : palette.accent,
+            overflow: "hidden",
+          }}
+        >
+          {!streaming && (
+            <View style={{
+              position: "absolute", top: 0, right: 0, bottom: 0, width: "50%",
+              backgroundColor: palette.accent2,
+            }} />
+          )}
+          <Text style={{ color: "#fff", fontSize: 18 }}>↑</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
