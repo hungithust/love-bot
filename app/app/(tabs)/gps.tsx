@@ -30,6 +30,7 @@ export default function GPS() {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [mapError, setMapError] = useState(false);
 
   async function fetchLocation() {
     setState("loading");
@@ -116,7 +117,7 @@ export default function GPS() {
       </View>
 
       {/* Map */}
-      {location && (
+      {location && !mapError && (
         <MapView
           style={{ height: 200, margin: 16, borderRadius: 12 }}
           region={{
@@ -127,6 +128,7 @@ export default function GPS() {
           }}
           scrollEnabled={false}
           zoomEnabled={false}
+          onMapReady={() => setMapError(false)}
         >
           <Marker coordinate={{ latitude: location.lat, longitude: location.lng }} />
         </MapView>
