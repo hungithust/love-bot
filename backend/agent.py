@@ -50,7 +50,7 @@ TOOLS = [
 ]
 
 
-def compile_system_prompt(rag_memories: list[str]) -> str:
+def compile_system_prompt(rag_memories: list[str], user_status: str | None = None) -> str:
     seed = load_seed()
     style = load_style()
     base = load_prompt("persona_base")
@@ -58,13 +58,14 @@ def compile_system_prompt(rag_memories: list[str]) -> str:
     red = "\n".join(f"- {r}" for r in seed["red_lines"])
     seed_dump = json.dumps(seed, ensure_ascii=False, indent=2)
     rag_block = "\n".join(f"- {m}" for m in rag_memories) or "(chưa có)"
+    status_block = f"\n\n{user_status}" if user_status else ""
     return base.format(
         nickname=nickname,
         red_lines_compiled=red,
         seed_compiled=seed_dump,
         style_md=style,
         rag_memories=rag_block,
-    )
+    ) + status_block
 
 
 def parse_tool_calls(blocks: list) -> list[dict]:
@@ -79,8 +80,8 @@ def parse_tool_calls(blocks: list) -> list[dict]:
     return out
 
 
-async def respond_stream(messages: list[dict], rag_memories: list[str]):
-    system = compile_system_prompt(rag_memories)
+async def respond_stream(messages: list[dict], rag_memories: list[str], user_status: str | None = None):
+    system = compile_system_prompt(rag_memories, user_status)
     async with _client.messages.stream(
         model=settings.chat_model,
         max_tokens=512,

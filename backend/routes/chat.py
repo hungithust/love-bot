@@ -44,6 +44,7 @@ async def classify_mood(ai_text: str) -> tuple[str, str]:
 
 class ChatIn(BaseModel):
     message: str
+    user_status: str | None = None
 
 
 @router.post("/chat")
@@ -62,7 +63,7 @@ async def chat(payload: ChatIn, request: Request):
         tool_calls = []
         mood_result: tuple[str, str] = ("neutral", "💜")
         try:
-            async for chunk in respond_stream(history, rag):
+            async for chunk in respond_stream(history, rag, payload.user_status):
                 if isinstance(chunk, dict) and "final" in chunk:
                     final = chunk["final"]
                     for b in final.content:
