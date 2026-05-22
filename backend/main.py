@@ -16,6 +16,7 @@ from routes.quotes import router as quotes_router
 async def lifespan(app):
     pool = await get_pool()
     await run_migrations(pool)
+    app.state.pool = pool
     yield
 
 
