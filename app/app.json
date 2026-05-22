@@ -14,7 +14,12 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/ngoc-khanh.jpg",
@@ -46,7 +51,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#0a0a0a"
         }
-      ]
+      ],
+      "expo-sensors"
     ],
     "experiments": {
       "typedRoutes": true
