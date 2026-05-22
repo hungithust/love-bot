@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, Pressable, ScrollView, Linking } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import { storage } from "@/lib/storage";
@@ -14,6 +15,13 @@ type LocationData = {
   address: string;
   updatedAt: Date;
 };
+
+function formatRelativeTime(date: Date): string {
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diff < 60) return "vừa xong";
+  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+  return `${Math.floor(diff / 3600)} giờ trước`;
+}
 
 export default function GPS() {
   const { palette } = useTheme();
@@ -93,11 +101,102 @@ export default function GPS() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.bg, paddingTop: insets.top }}>
-      <Text style={{ color: palette.fg, fontSize: 17, fontWeight: "700", padding: 16 }}>
-        📍 Vị trí hiện tại
-      </Text>
-      <Text style={{ color: palette.fg, padding: 16 }}>State: {state}</Text>
-    </View>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: palette.bg }}
+      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}
+    >
+      {/* Header */}
+      <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: palette.border }}>
+        <Text style={{ color: palette.fg, fontSize: 17, fontWeight: "700" }}>📍 Vị trí hiện tại</Text>
+        <Text style={{ color: palette.accent, fontSize: 12, marginTop: 2 }}>
+          {location
+            ? `● GPS: BẬT  •  Cập nhật: ${formatRelativeTime(location.updatedAt)}`
+            : "● GPS: chưa bật"}
+        </Text>
+      </View>
+
+      {/* Map */}
+      {location && (
+        <MapView
+          style={{ height: 200, margin: 16, borderRadius: 12 }}
+          region={{
+            latitude: location.lat,
+            longitude: location.lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+          scrollEnabled={false}
+          zoomEnabled={false}
+        >
+          <Marker coordinate={{ latitude: location.lat, longitude: location.lng }} />
+        </MapView>
+      )}
+
+      {/* Coordinates */}
+      {location && (
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <Text style={{ color: palette.fg, fontSize: 14 }}>
+            {location.lat.toFixed(5)}° N, {location.lng.toFixed(5)}° E
+            {location.accuracy !== null ? `  ±${Math.round(location.accuracy)}m` : ""}
+          </Text>
+          <Text style={{ color: palette.accent, fontSize: 13, marginTop: 2 }}>{location.address}</Text>
+        </View>
+      )}
+
+      {/* Error */}
+      {state === "error" && (
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <Text style={{ color: "#e06c75", fontSize: 14 }}>{errorMsg}</Text>
+          {errorMsg.includes("quyền") && (
+            <Pressable onPress={() => Linking.openSettings()} style={{ marginTop: 8 }}>
+              <Text style={{ color: palette.accent, fontSize: 13 }}>Mở Cài đặt →</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+
+      {/* Update button */}
+      <Pressable
+        onPress={fetchLocation}
+        disabled={state === "loading"}
+        style={{
+          marginHorizontal: 16,
+          marginBottom: 16,
+          padding: 12,
+          backgroundColor: state === "loading" ? "#222" : palette.surface,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: palette.border,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: state === "loading" ? "#555" : palette.accent, fontSize: 14 }}>
+          {state === "loading" ? "Đang lấy vị trí..." : "🔄 Cập nhật vị trí ngay"}
+        </Text>
+      </Pressable>
+
+      {/* Suggestions */}
+      {suggestions.length > 0 && (
+        <View style={{ paddingHorizontal: 16 }}>
+          <Text style={{ color: palette.fg, fontSize: 15, fontWeight: "700", marginBottom: 10 }}>
+            ✨ Gợi ý hôm nay
+          </Text>
+          {suggestions.map((s, i) => (
+            <Text key={i} style={{ color: palette.fg, fontSize: 13, lineHeight: 20, marginBottom: 6 }}>
+              • {s}
+            </Text>
+          ))}
+        </View>
+      )}
+
+      {/* Idle placeholder */}
+      {state === "idle" && (
+        <View style={{ paddingHorizontal: 16 }}>
+          <Text style={{ color: "#555", fontSize: 13 }}>
+            Bấm nút trên để lấy vị trí và gợi ý địa điểm.
+          </Text>
+        </View>
+      )}
+    </ScrollView>
   );
 }
