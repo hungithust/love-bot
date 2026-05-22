@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 import httpx
+import random
 
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
@@ -17,14 +18,26 @@ class RegisterBody(BaseModel):
 
 
 def should_send_push(now: datetime, last_push: datetime | None, sent_today: int) -> bool:
-    if sent_today >= 5:
+    if sent_today >= 3:          # max 3/ngày theo spec
         return False
-    if last_push and (now - last_push) < timedelta(hours=4):
+    if last_push and (now - last_push) < timedelta(hours=3):
         return False
     h = now.hour
-    if not (h >= 23 or h < 3 or (10 <= h < 12)):
+    m = now.minute
+    # Không gửi 23:00–08:00
+    if 23 <= h or h < 8:
         return False
-    return True
+    # 3 target windows với ±30 phút jitter:
+    # Sáng: target 8:00, window 8:00–9:00
+    # Chiều: target 14:00, window 13:30–15:00
+    # Tối:  target 21:30, window 21:00–22:30
+    in_morning   = h == 8 and m < 60
+    in_afternoon = (h == 13 and m >= 30) or (h == 14) or (h == 15 and m == 0)
+    in_evening   = (h == 21) or (h == 22 and m < 30)
+    if not (in_morning or in_afternoon or in_evening):
+        return False
+    # Jitter: chỉ gửi ~50% số lần tick trong window để không bị predictable
+    return random.random() < 0.5
 
 
 @router.post("/register")
