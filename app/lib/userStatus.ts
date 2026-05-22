@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { useState, useEffect, useCallback } from "react";
 
 export type UserStatus = {
@@ -32,7 +32,7 @@ export function useUserStatus() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY).then((raw) => {
+    SecureStore.getItemAsync(KEY).then((raw) => {
       if (raw) setStatusState(JSON.parse(raw));
       setLoaded(true);
     });
@@ -41,12 +41,12 @@ export function useUserStatus() {
   const setStatus = useCallback(async (s: UserStatus) => {
     const next = { ...s, timestamp: Date.now() };
     setStatusState(next);
-    await AsyncStorage.setItem(KEY, JSON.stringify(next));
+    await SecureStore.setItemAsync(KEY, JSON.stringify(next));
   }, []);
 
   const clearStatus = useCallback(async () => {
     setStatusState(null);
-    await AsyncStorage.removeItem(KEY);
+    await SecureStore.deleteItemAsync(KEY);
   }, []);
 
   return { status, setStatus, clearStatus, loaded };
